@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path"
 	"time"
 )
 
@@ -47,8 +48,18 @@ func (c *Client) Start() error {
 	if err != nil {
 		return err
 	}
-	filename := fileInfo.Name()
+	var filename string
+	newFilepath := filepath
+	if fileInfo.IsDir() {
+		filename = fmt.Sprintf("%s.tar.gz", time.Now().Format("2006-01-02_15-04-05"))
+		fp, _ := os.Getwd()
+		newFilepath = path.Join(fp, "temp", filename)
+		MustPack(filepath, newFilepath)
+	} else {
+		filename = fileInfo.Name()
+	}
 
+	go_logger.Logger.InfoF("filename: %s, newFilepath: %s", filename, newFilepath)
 	tcpAddress, err := go_config.Config.GetString("tcp-address")
 	if err != nil {
 		go_logger.Logger.ErrorF("get config error - %s", err)
@@ -69,13 +80,19 @@ func (c *Client) Start() error {
 	}
 
 	// 选择出最合适的数据包大小
+	fileInfo, err = os.Stat(newFilepath)
+	if err != nil {
+		return err
+	}
 	fileSize := fileInfo.Size()
+	go_logger.Logger.DebugF("fileSize: %d", fileSize)
 	var dataSizePerPackage uint64
 	if fileSize > MAX_DATASIZE_PER_PACKAGE {
 		dataSizePerPackage = MAX_DATASIZE_PER_PACKAGE
 	} else {
 		dataSizePerPackage = uint64(fileSize)
 	}
+	go_logger.Logger.DebugF("dataSizePerPackage: %d", dataSizePerPackage)
 
 	//发送数据包大小以及文件名到接收端
 	var promiseBuf bytes.Buffer
@@ -83,7 +100,9 @@ func (c *Client) Start() error {
 	if err != nil {
 		return err
 	}
+	//return nil
 	promiseBuf.Write([]byte(filename))
+	go_logger.Logger.Debug("filename and dataSize package: ", promiseBuf.Bytes())
 	_, err = conn.Write(promiseBuf.Bytes())
 	if err != nil {
 		return err
@@ -100,8 +119,9 @@ func (c *Client) Start() error {
 	if result != "ok" {
 		return fmt.Errorf("deny!!! - %s", result)
 	}
-	go_logger.Logger.Info("开始传输文件")
-	file, err := os.Open(filepath)
+	go_logger.Logger.InfoF("开始传输文件 - %s", newFilepath)
+
+	file, err := os.Open(newFilepath)
 	if err != nil {
 		return err
 	}
@@ -115,7 +135,7 @@ func (c *Client) Start() error {
 		readCount, err := file.Read(buf)
 		if err != nil {
 			if err == io.EOF {
-				go_logger.Logger.Info("文件已读完")
+				go_logger.Logger.Info("文件已读完", readCount)
 				break
 			}
 			return err
@@ -128,6 +148,7 @@ func (c *Client) Start() error {
 		}
 		go_logger.Logger.DebugF("dataSize: %d, dataSizePerPackage: %d", dataSize, dataSizePerPackage)
 		packageBuf.Write(buf)  // 要全部写过去，保证packageBuf大小足够一个包的长度，避免服务端最后一个包阻塞
+		go_logger.Logger.DebugF("发送 %d 个字节", len(packageBuf.Bytes()))
 		_, err = conn.Write(packageBuf.Bytes())
 		if err != nil {
 			return err
@@ -135,12 +156,14 @@ func (c *Client) Start() error {
 
 	}
 	go_logger.Logger.Info("文件发送完成，现在发送结束标志")
+	buf = make([]byte, dataSizePerPackage)
 	var dataSize = uint64(0)
 	var packageBuf bytes.Buffer
 	err = binary.Write(&packageBuf, binary.BigEndian, dataSize)
 	if err != nil {
 		return err
 	}
+	packageBuf.Write(buf)
 	_, err = conn.Write(packageBuf.Bytes())
 	if err != nil {
 		return err

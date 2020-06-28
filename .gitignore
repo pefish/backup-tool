@@ -15,3 +15,5 @@
 **/config/local.yaml
 **/secret/dev.yaml
 **/config/dev.yaml
+
+/temp

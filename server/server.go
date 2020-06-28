@@ -46,7 +46,7 @@ func (s *Server) Start() error {
 		go_logger.Logger.ErrorF("listen (%s) failed - %s", tcpAddress, err)
 		return err
 	}
-	go_logger.Logger.InfoF("TCP: listening on %s", tcpListener.Addr())
+	go_logger.Logger.InfoF("listening on %s", tcpListener.Addr())
 
 	for {
 		clientConn, err := tcpListener.Accept()
@@ -130,7 +130,6 @@ func (s *Server) receiveFile(conn net.Conn) {
 		}
 		go_logger.Logger.DebugF("dataSize: %d, dataSizePerPackage: %d", dataSize, dataSizePerPackage)
 		if dataSize != 0 {
-			go_logger.Logger.Debug(buf[8:8+dataSize])
 			file.Write(buf[8:8+dataSize])
 		}
 		if dataSize < dataSizePerPackage {
