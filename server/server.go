@@ -9,6 +9,8 @@ import (
 	"io"
 	"net"
 	"os"
+	"path"
+	"strings"
 	"time"
 )
 
@@ -24,6 +26,7 @@ func NewServer() *Server {
 
 func (s *Server) DecorateFlagSet(flagSet *flag.FlagSet) error {
 	flagSet.String("tcp-address", "0.0.0.0:8000", "<addr>:<port> to listen on for TCP clients")
+	flagSet.String("target-path", "~/", "path to save file")
 	return nil
 }
 
@@ -69,7 +72,7 @@ func (s *Server) receiveFile(conn net.Conn) {
 		conn.Close()
 		go_logger.Logger.Info("client closed!!!")
 	}()
-	// 开始数据包大小（8字节）以及文件名（后面全是）协商
+	// 开始接收协商包
 	promiseBuf := make([]byte, 200)
 	err := conn.SetReadDeadline(time.Now().Add(10 * time.Second)) // 这么久没收到数据，则报超时错
 	if err != nil {
@@ -92,10 +95,26 @@ func (s *Server) receiveFile(conn net.Conn) {
 		return
 	}
 	go_logger.Logger.InfoF("dataSizePerPackage: %d",dataSizePerPackage)
-	filename := string(promiseBuf[8:n])
+	saveToPath := strings.TrimSpace(string(promiseBuf[8:40]))
+	go_logger.Logger.InfoF("saveToPath: %s",saveToPath)
+	filename := string(promiseBuf[40:n])
 	go_logger.Logger.InfoF("filename: %s",filename)
 	// 创建文件
-	file, err := os.Create(filename)
+	targetPath := go_config.Config.MustGetString("target-path")
+	if strings.HasPrefix(targetPath, "~") {
+		homePath, _ := os.UserHomeDir()
+		targetPath = homePath + targetPath[1:]
+	}
+	targetDir := path.Join(targetPath, saveToPath)
+	err = os.MkdirAll(targetDir, os.ModePerm)
+	if err != nil {
+		go_logger.Logger.Error(err)
+		return
+	}
+	go_logger.Logger.InfoF("targetDir: %s",targetDir)
+	saveToFile := path.Join(targetDir, filename)
+	go_logger.Logger.InfoF("saveToFile: %s",saveToFile)
+	file, err := os.Create(saveToFile)
 	if err != nil {
 		go_logger.Logger.Error(err)
 		return

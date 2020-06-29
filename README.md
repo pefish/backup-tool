@@ -5,6 +5,8 @@ file_transfer_tool是一款文件传输工具，具有以下特点
 2. 分为服务端以及客户端，支持传输到任意地方
 3. 完美支持大文件传输
 
+**注意：本项目主要用于学习研究，成熟的scp完全可以替代本工具**
+
 ## Install
 
 ```shell script
@@ -16,14 +18,16 @@ go get -u github.com/pefish/file-transfer-tool/bin/file_transfer_tool
 ### Server Side
 
 ```shell script
-file_transfer_tool server
+file_transfer_tool server --log-level=debug --target-path=~/backup/
 ```
 
 ### Client Side
 
 ```shell script
-file_transfer_tool client --tcp-address=0.0.0.0:8000 --file=/path/to/file
+file_transfer_tool client --tcp-address=0.0.0.0:8000 --file=/path/to/file --save-path=test/
 ```
+
+文件将被传输到服务机上的**~/backup/test/**目录下
 
 ## Document
 

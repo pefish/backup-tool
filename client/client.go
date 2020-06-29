@@ -31,6 +31,7 @@ const (
 func (c *Client) DecorateFlagSet(flagSet *flag.FlagSet) error {
 	flagSet.String("tcp-address", "0.0.0.0:8000", "<addr>:<port> to listen on for TCP clients")
 	flagSet.String("file", "", "file to send")
+	flagSet.String("save-path", "temp/", "path to save")
 	return nil
 }
 
@@ -56,7 +57,7 @@ func (c *Client) Start() error {
 		newFilepath = path.Join(fp, "temp", filename)
 		MustPack(filepath, newFilepath)
 	} else {
-		filename = fileInfo.Name()
+		filename = time.Now().Format("2006-01-02_15-04-05") + "_" + fileInfo.Name()
 	}
 
 	go_logger.Logger.InfoF("filename: %s, newFilepath: %s", filename, newFilepath)
@@ -94,15 +95,20 @@ func (c *Client) Start() error {
 	}
 	go_logger.Logger.DebugF("dataSizePerPackage: %d", dataSizePerPackage)
 
-	//发送数据包大小以及文件名到接收端
+	// 发送协商包到接收端
+	// 数据包大小（8字节）、存放目录（32字节）、文件名
 	var promiseBuf bytes.Buffer
 	err = binary.Write(&promiseBuf, binary.BigEndian, dataSizePerPackage)
 	if err != nil {
 		return err
 	}
-	//return nil
+	// 放入存放目录
+	savePathBytes := bytes.Repeat([]byte(" "), 32)
+	savePath := go_config.Config.MustGetString("save-path")
+	copy(savePathBytes, savePath)
+	promiseBuf.Write(savePathBytes)
 	promiseBuf.Write([]byte(filename))
-	go_logger.Logger.Debug("filename and dataSize package: ", promiseBuf.Bytes())
+	go_logger.Logger.Debug("promise package: ", promiseBuf.Bytes())
 	_, err = conn.Write(promiseBuf.Bytes())
 	if err != nil {
 		return err
