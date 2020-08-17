@@ -35,14 +35,6 @@ func (c *Client) DecorateFlagSet(flagSet *flag.FlagSet) error {
 	return nil
 }
 
-func (c *Client) ParseFlagSet(flagSet *flag.FlagSet) error {
-	err := flagSet.Parse(os.Args[2:])
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *Client) Start() error {
 	filepath := go_config.Config.MustGetString("file")
 	fileInfo, err := os.Stat(filepath)

@@ -10,7 +10,7 @@ file_transfer_tool是一款文件传输工具，具有以下特点
 ## Install
 
 ```shell script
-go get -u github.com/pefish/file-transfer-tool/bin/file_transfer_tool
+go get -u github.com/pefish/file-transfer-tool/cmd/file-transfer-tool
 ```
 
 ## Quick start
@@ -18,13 +18,13 @@ go get -u github.com/pefish/file-transfer-tool/bin/file_transfer_tool
 ### Server Side
 
 ```shell script
-file_transfer_tool server --log-level=debug --target-path=~/backup/
+file-transfer-tool server --log-level=debug --target-path=~/backup/
 ```
 
 ### Client Side
 
 ```shell script
-file_transfer_tool client --tcp-address=0.0.0.0:8000 --file=/path/to/file --save-path=test/
+file-transfer-tool client --tcp-address=0.0.0.0:8000 --file=/path/to/file --save-path=test/
 ```
 
 文件将被传输到服务机上的**~/backup/test/**目录下

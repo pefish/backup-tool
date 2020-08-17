@@ -8,4 +8,4 @@ ENV GO_CONFIG /app/config/pom.yaml
 ENV GO_SECRET /app/secret/pom.yaml
 CMD ["./build/bin/linux/main", "--help"]
 
-# docker build -t pefish/file_transfer_tool:v1.2.4 .
+# docker build -t pefish/file-transfer-tool:v1.2.4 .

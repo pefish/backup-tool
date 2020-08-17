@@ -30,14 +30,6 @@ func (s *Server) DecorateFlagSet(flagSet *flag.FlagSet) error {
 	return nil
 }
 
-func (s *Server) ParseFlagSet(flagSet *flag.FlagSet) error {
-	err := flagSet.Parse(os.Args[2:])
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *Server) Start() error {
 	tcpAddress, err := go_config.Config.GetString("tcp-address")
 	if err != nil {
